@@ -12,11 +12,30 @@ const events = mibu.events;
 const term = mibu.term;
 const color = mibu.color;
 const std = @import("std");
+const buildopts = @import("buildopts");
 const Display = @import("display.zig").Display;
 
 var prng: std.Random.Xoshiro256 = undefined;
 var rand: std.Random = undefined;
 var randInited = false;
+
+// Seeded on first use, not when the player is made: players are made before
+// the command line is read, so -s was not known yet, and the clock had only
+// just started, so every run without -s got the same seed.
+fn getRand() std.Random {
+    if (!randInited) {
+        randInited = true;
+        if (config.RANDOMSEED) |seed| {
+            prng = std.Random.DefaultPrng.init(@intCast(seed));
+        } else if (buildopts.web) {
+            prng = std.Random.DefaultPrng.init(@intCast(clock.millis()));
+        } else {
+            prng = std.Random.DefaultPrng.init(@truncate(@as(u128, @bitCast(std.time.nanoTimestamp()))));
+        }
+        rand = prng.random();
+    }
+    return rand;
+}
 
 const UiState = enum {
     Idle,
@@ -30,16 +49,6 @@ pub const UiAgentMachine = struct {
     nextMove: VerifiedMove,
 
     pub fn init() Self {
-        if (!randInited) {
-            randInited = true;
-            if (config.RANDOMSEED) |seed| {
-                prng = std.Random.DefaultPrng.init(@intCast(seed));
-            } else {
-                prng = std.Random.DefaultPrng.init(@intCast(clock.millis()));
-            }
-            rand = prng.random();
-        }
-
         return Self{
             .state = .Idle,
             .nextMove = undefined,
@@ -107,7 +116,7 @@ pub const UiAgentMachine = struct {
 
         if (config.RANDOMNESS > 0) {
             // perturb score by randomness factor
-            r += @intCast(rand.int(u32) % config.RANDOMNESS);
+            r += @intCast(getRand().int(u32) % config.RANDOMNESS);
         }
 
         // +100000 is to ensure no result is negative

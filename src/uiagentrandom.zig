@@ -5,12 +5,31 @@ const VerifiedMove = @import("gamestate.zig").VerifiedMove;
 const mibu = @import("mibu");
 const events = mibu.events;
 const std = @import("std");
+const buildopts = @import("buildopts");
 const Display = @import("display.zig").Display;
 const clock = @import("clock.zig");
 
 var prng: std.Random.Xoshiro256 = undefined;
 var rand: std.Random = undefined;
 var randInited = false;
+
+// Seeded on first use, not when the player is made: players are made before
+// the command line is read, so -s was not known yet, and the clock had only
+// just started, so every run without -s got the same seed.
+fn getRand() std.Random {
+    if (!randInited) {
+        randInited = true;
+        if (config.RANDOMSEED) |seed| {
+            prng = std.Random.DefaultPrng.init(@intCast(seed));
+        } else if (buildopts.web) {
+            prng = std.Random.DefaultPrng.init(@intCast(clock.millis()));
+        } else {
+            prng = std.Random.DefaultPrng.init(@truncate(@as(u128, @bitCast(std.time.nanoTimestamp()))));
+        }
+        rand = prng.random();
+    }
+    return rand;
+}
 
 const UiState = enum {
     Idle,
@@ -24,16 +43,6 @@ pub const UiAgentRandom = struct {
     nextMove: VerifiedMove,
 
     pub fn init() Self {
-        if (!randInited) {
-            randInited = true;
-            if (config.RANDOMSEED) |seed| {
-                prng = std.Random.DefaultPrng.init(@intCast(seed));
-            } else {
-                prng = std.Random.DefaultPrng.init(@intCast(clock.millis()));
-            }
-            rand = prng.random();
-        }
-
         return Self{
             .state = .Idle,
             .nextMove = undefined,
@@ -48,10 +57,10 @@ pub const UiAgentRandom = struct {
     pub fn getAnyLegalMove(self: *const Self, gs: *const GameState, pi: usize) !VerifiedMove{
         _ = self;
         while(true) {
-            const move = switch(rand.int(usize) % 3) {
-                0 => Move{ .pawn = .{ .x = @intCast(rand.int(usize)%9), .y = @intCast(rand.int(usize)%9) } },
-                1 => Move{ .fence = .{ .pos = .{ .x = @intCast(rand.int(usize)%8), .y = @intCast(rand.int(usize)%8) }, .dir = .vert } },
-                2 => Move{ .fence = .{ .pos = .{ .x = @intCast(rand.int(usize)%8), .y = @intCast(rand.int(usize)%8) }, .dir = .horz } },
+            const move = switch(getRand().int(usize) % 3) {
+                0 => Move{ .pawn = .{ .x = @intCast(getRand().int(usize)%9), .y = @intCast(getRand().int(usize)%9) } },
+                1 => Move{ .fence = .{ .pos = .{ .x = @intCast(getRand().int(usize)%8), .y = @intCast(getRand().int(usize)%8) }, .dir = .vert } },
+                2 => Move{ .fence = .{ .pos = .{ .x = @intCast(getRand().int(usize)%8), .y = @intCast(getRand().int(usize)%8) }, .dir = .horz } },
                 else => unreachable,
             };
             const vm = try gs.verifyMove(pi, move);

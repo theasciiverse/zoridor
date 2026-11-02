@@ -87,8 +87,8 @@ pub fn parseCommandLine() !void {
         }
     }
 
-    if (matches.containsArg("randseed")) {
-        if (matches.getSingleValue("randseed")) |seedStr| {
+    if (matches.containsArg("seedrand")) {
+        if (matches.getSingleValue("seedrand")) |seedStr| {
             const i = std.fmt.parseInt(u32, seedStr, 10) catch return;
             RANDOMSEED = i;
         }
