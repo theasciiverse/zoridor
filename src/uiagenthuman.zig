@@ -115,6 +115,8 @@ pub const UiAgentHuman = struct {
                         .char => |c| switch (c) {
                             ' ' => {
                                 self.nextMove.move.fence.dir = self.nextMove.move.fence.dir.flip();
+                                // check it again turned, or Enter goes by the old direction's verdict
+                                self.nextMove = try gs.verifyMove(pi, self.nextMove.move);
                             },
                             else => {},
                         },
