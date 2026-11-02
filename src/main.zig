@@ -32,21 +32,22 @@ pub fn main() !void {
 
     // loop for terminal
     while (!exitReq) {
-        var display = try Display.init();
-        defer display.destroy();
-
+        // check the size before taking over the terminal, so the message stays readable
         const sz = try Display.getSize();
         if (config.mini) {
             if (sz.width < 80 or sz.height < 24) {
-                std.debug.print("Display too small, must be 80x24 or larger\r\n", .{});
-                return;
+                std.debug.print("Display too small, must be 80x24 or larger\n", .{});
+                std.process.exit(1);
             }
         } else {
             if (sz.width < 80 or sz.height < 29) {
-                std.debug.print("Display too small, must be 80x29 or larger\r\n", .{});
-                return;
+                std.debug.print("Display too small, must be 80x29 or larger\n", .{});
+                std.process.exit(1);
             }
         }
+
+        var display = try Display.init();
+        defer display.destroy();
 
         display.cls();
         try display.paint();

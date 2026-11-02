@@ -36,6 +36,8 @@ pub const Display = struct {
         const rt = try term.enableRawMode(stdin.handle);
         const writer = io.getStdOut().writer();
 
+        // draw on the alternate screen, so quitting gives the terminal back as it was
+        try writer.print("{s}", .{utils.comptimeCsi("?1049h", .{})});
         try cursor.hide(writer);
 
         return Self{
@@ -57,14 +59,10 @@ pub const Display = struct {
         // allow multiple calls to destroy
         if (self.active) {
             self.active = false;
-            self.cls();
-            self.paint() catch {};
             const writer = io.getStdOut().writer();
+            writer.print("{s}", .{utils.comptimeCsi("0m", .{})}) catch {};
             cursor.show(writer) catch {};
-            cursor.goTo(writer, 1, 1) catch {};
-            color.bg256(writer, .black) catch {};
-            color.fg256(writer, .white) catch {};
-            style.noBold(writer) catch {};
+            writer.print("{s}", .{utils.comptimeCsi("?1049l", .{})}) catch {};
             self.raw_term.disableRawMode() catch {};
         }
     }
