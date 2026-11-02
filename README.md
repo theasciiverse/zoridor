@@ -1,3 +1,13 @@
+> **Play it with Asciiverse.** With [av](https://asciiverse.sh), the Asciiverse
+> client:
+>
+> ```
+> av install zoridor
+> av play zoridor
+> ```
+>
+> The original README follows.
+
 # Zoridor
 
 A terminal and web version of the [Quoridor](https://en.wikipedia.org/wiki/Quoridor) board game
